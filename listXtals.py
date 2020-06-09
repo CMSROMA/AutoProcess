@@ -22,10 +22,11 @@ airtables={}
 for t in tables:
     airtables[t] = Airtable(base_key, t, api_key=os.environ['AIRTABLE_KEY'])
 
-crystals= airtables['Crystals'].get_iter()
+records= airtables['Crystals'].get_all()
+crystals=[ t['fields']['ID'] for t in records ]
+crystals.sort(reverse=True)
 
 for c in crystals:
-    for cc in c:
 #        print(cc['fields']['ID'])
-        f.write(cc['fields']['ID']+'\n')
+        f.write(c+'\n')
 f.close()
