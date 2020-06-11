@@ -28,10 +28,16 @@ class processThread (threading.Thread):
       fields = {'Processing status': 'RAW2ROOT STARTED'}
       airtables['RUNS'].update(self.name, fields)
       #Launch processing on pccmsdaq02
-      os.system('ssh pccmsdaq02 "cd /home/cmsdaq/work/LYBenchProcessing;  ./processData.sh -t %s -r %s" > /dev/null 2>&1'%(self.runtype,self.runid))
-      logging.info("RAW2ROOT completed for " + self.runid)
-      fields = {'Processing status': 'RAW2ROOT COMPLETED'}
-      airtables['RUNS'].update(self.name, fields)
+      exitStatus=os.WEXITSTATUS(os.system('ssh pccmsdaq02 "cd /home/cmsdaq/work/LYBenchProcessing;  ./processData.sh -t %s -r %s" > /dev/null 2>&1'%(self.runtype,self.runid)))
+      if (exitStatus==0):
+          logging.info("RAW2ROOT completed for " + self.runid)
+          fields = {'Processing status': 'RAW2ROOT COMPLETED'}
+          airtables['RUNS'].update(self.name, fields)
+      else:
+          logging.info("RAW2ROOT failed for " + self.runid)
+          fields = {'Processing status': 'FAILED'}
+          airtables['RUNS'].update(self.name, fields)
+
       del processingRuns[self.name]
 
 class analysisThread (threading.Thread):
@@ -55,17 +61,25 @@ class analysisThread (threading.Thread):
       airtables['RUNS'].update(self.name, fields)
       #Launch analysis
       if (self.runtype=='led'):
-          os.system('cd /home/cmsdaq/Analysis/LYBenchMacros; ./runSinglePEFit.sh -i %s -l -s -w > logs/singlePEFit_%s.log 2>&1'%(self.runid,self.runid))
+          exitStatus=os.WEXITSTATUS(os.system('cd /home/cmsdaq/Analysis/LYBenchMacros; ./runSinglePEFit.sh -i %s -l -s -w > logs/singlePEFit_%s.log 2>&1'%(self.runid,self.runid)))
       elif (self.runtype=='source'):
-          os.system('cd /home/cmsdaq/Analysis/LYBenchMacros; ./runSourceAnalysis.sh -i %s -p %s -w > logs/sourceAnalysis_%s.log 2>&1'%(self.runid,self.ledref,self.runid))
-      logging.info("Analysis completed for " + self.runid)
-      fields = {'Processing status': 'PROCESSING COMPLETED','Results':'http://10.0.0.44/process/%s/'%self.runid}
-      airtables['RUNS'].update(self.name, fields)
+          exitStatus=os.WEXITSTATUS(os.system('cd /home/cmsdaq/Analysis/LYBenchMacros; ./runSourceAnalysis.sh -i %s -p %s -w > logs/sourceAnalysis_%s.log 2>&1'%(self.runid,self.ledref,self.runid)))
+      if (exitStatus==0):
+          logging.info("Analysis completed for " + self.runid)
+          fields = {'Processing status': 'PROCESSING COMPLETED','Results':'http://10.0.0.44/process/%s/'%self.runid}
+          airtables['RUNS'].update(self.name, fields)
+      else:
+          logging.info("Analysis failed for " + self.runid)
+          fields = {'Processing status': 'FAILED'}
+          airtables['RUNS'].update(self.name, fields)
       del analysisRuns[self.name]
 
 processingRuns={}
 analysisRuns={}
 counterThreads=1
+
+logging.info("Starting processing loop")
+
 
 while True:
     try:
@@ -110,10 +124,16 @@ while True:
                     analysisRuns[r['id']].start()
                     counterThreads+=1
 
+    except KeyboardInterrupt:
+        logging.info("Bye")
+        sys.exit()
+
+    except Exception as e:
+        logging.error(e)
+
+    try:
         #refresh every 10s
         time.sleep(10)
-
     except KeyboardInterrupt:
-
         logging.info("Bye")
         sys.exit()
