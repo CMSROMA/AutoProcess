@@ -92,7 +92,7 @@ while True:
                 continue
             if not 'SCAN' in r['fields']['RunID']:
                 continue
-            if datetime.datetime.strptime(r['fields']['Last modified'],'%Y-%m-%dT%H:%M:%S.%fZ').date() != today:
+            if datetime.datetime.strptime(r['fields']['Created'],'%Y-%m-%dT%H:%M:%S.%fZ').date() != today:
                 continue
             todayLedRuns[r['fields']['RunID']]=r['id']
         if (len(todayLedRuns)>0):
