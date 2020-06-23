@@ -3,9 +3,6 @@ from pprint import pprint
 from airtable import Airtable
 import pandas as pd
 
-base_key = 'appQ2YoOIQFBKKIpG'
-tables = ['Crystals']
-
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--output',dest='output')
@@ -18,11 +15,8 @@ except OSError:
     print('cannot open', args.output)
     exit(-1)
 
-airtables={}
-for t in tables:
-    airtables[t] = Airtable(base_key, t, api_key=os.environ['AIRTABLE_KEY'])
-
-records= airtables['Crystals'].get_all()
+import runDB
+records= runDB.airtables['Crystals'].get_all()
 crystals=[ t['fields']['ID'] for t in records ]
 crystals.sort(reverse=True)
 

@@ -3,8 +3,7 @@ from pprint import pprint
 from airtable import Airtable
 import pandas as pd
 
-base_key = 'appQ2YoOIQFBKKIpG'
-tables = ['RUNS','Crystals']
+import runDB
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -15,20 +14,12 @@ args = parser.parse_args()
 
 runID=args.runid
 runStatus=args.runstatus
-runEvents=int(args.runevents)
+if(args.runevents!=None):
+    runEvents=int(args.runevents)
 
-runStatuses = [
-    'DAQ STARTED',
-    'DAQ COMPLETED',
-    'RAW2ROOT STARTED',
-    'RAW2ROOT COMPLETED',
-    'PROCESSING STARTED',
-    'PROCESSING COMPLETED',
-    'VALIDATED'
-]
 runStatusOK=False
 
-for t in runStatuses:
+for t in runDB.runStatuses:
     if t==runStatus:
         runStatusOK=True
         break
@@ -36,16 +27,16 @@ if not runStatusOK:
     print('Unknown RunStatus %s'%runStatus)
     exit(-1)
 
-airtables={}
-for t in tables:
-    airtables[t] = Airtable(base_key, t, api_key=os.environ['AIRTABLE_KEY'])
-#print(airtable)
 
-record=airtables['RUNS'].match('RunID',runID)
+record=runDB.airtables['RUNS'].match('RunID',runID)
 if (len(record)==0):
     print('Error: Cannot find %s'%runID)
     exit(-1)
 
-fields = {'Processing status': runStatus, 'Events': runEvents}
+fields={}
+if (runStatus!=None):
+    fields['Processing status']=runStatus
+if (args.runevents!=None):
+    fields['Events']=runEvents
 
-airtables['RUNS'].update(record['id'], fields)
+runDB.airtables['RUNS'].update(record['id'], fields)

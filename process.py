@@ -9,12 +9,7 @@ import logging
 logging.basicConfig(format='%(asctime)s  %(filename)s  %(levelname)s: %(message)s',
                     level=logging.INFO)
 
-base_key = 'appQ2YoOIQFBKKIpG'
-tables = ['RUNS']
-
-airtables={}
-for t in tables:
-    airtables[t] = Airtable(base_key, t, api_key=os.environ['AIRTABLE_KEY'])
+import runDB
 
 class processThread (threading.Thread):
    def __init__(self, threadID, name, runid, runtype):
@@ -26,17 +21,17 @@ class processThread (threading.Thread):
    def run(self):
       logging.info("Starting RAW2ROOT of " + self.runid)
       fields = {'Processing status': 'RAW2ROOT STARTED'}
-      airtables['RUNS'].update(self.name, fields)
+      runDB.airtables['RUNS'].update(self.name, fields)
       #Launch processing on pccmsdaq02
       exitStatus=os.WEXITSTATUS(os.system('ssh pccmsdaq02 "cd /home/cmsdaq/work/LYBenchProcessing;  ./processData.sh -t %s -r %s" > /dev/null 2>&1'%(self.runtype,self.runid)))
       if (exitStatus==0):
           logging.info("RAW2ROOT completed for " + self.runid)
           fields = {'Processing status': 'RAW2ROOT COMPLETED'}
-          airtables['RUNS'].update(self.name, fields)
+          runDB.airtables['RUNS'].update(self.name, fields)
       else:
           logging.info("RAW2ROOT failed for " + self.runid)
           fields = {'Processing status': 'FAILED'}
-          airtables['RUNS'].update(self.name, fields)
+          runDB.airtables['RUNS'].update(self.name, fields)
 
       del processingRuns[self.name]
 
@@ -58,7 +53,7 @@ class analysisThread (threading.Thread):
       fields = {'Processing status': 'PROCESSING STARTED'}
       if (self.runtype=='source'):
           fields.update({'LED RUNS': [self.ledrefid]})
-      airtables['RUNS'].update(self.name, fields)
+      runDB.airtables['RUNS'].update(self.name, fields)
       #Launch analysis
       if (self.runtype=='led'):
           exitStatus=os.WEXITSTATUS(os.system('cd /home/cmsdaq/Analysis/LYBenchMacros; ./runSinglePEFit.sh -i %s -l -s -w > logs/singlePEFit_%s.log 2>&1'%(self.runid,self.runid)))
@@ -67,11 +62,11 @@ class analysisThread (threading.Thread):
       if (exitStatus==0):
           logging.info("Analysis completed for " + self.runid)
           fields = {'Processing status': 'PROCESSING COMPLETED','Results':'http://10.0.0.44/process/%s/'%self.runid}
-          airtables['RUNS'].update(self.name, fields)
+          runDB.airtables['RUNS'].update(self.name, fields)
       else:
           logging.info("Analysis failed for " + self.runid)
           fields = {'Processing status': 'FAILED'}
-          airtables['RUNS'].update(self.name, fields)
+          runDB.airtables['RUNS'].update(self.name, fields)
       del analysisRuns[self.name]
 
 processingRuns={}
@@ -85,7 +80,7 @@ while True:
     try:
         #Find the last good LED-SCAN run for today
         today=datetime.datetime.now().date()
-        lastValidatedRuns=airtables['RUNS'].search('Processing status','VALIDATED')
+        lastValidatedRuns=runDB.airtables['RUNS'].search('Processing status','VALIDATED')
         todayLedRuns={}
         for r in lastValidatedRuns:
             if r['fields']['Type']!='LED':
@@ -99,7 +94,7 @@ while True:
             lastLed=sorted(todayLedRuns.keys(),reverse=True)[0]
 
         #Discover if there is any run to be processed
-        runsToProcess=airtables['RUNS'].search('Processing status','DAQ COMPLETED')
+        runsToProcess=runDB.airtables['RUNS'].search('Processing status','DAQ COMPLETED')
         for r in runsToProcess:
             if not r['id'] in processingRuns:
                 #print(r)
@@ -108,7 +103,7 @@ while True:
                 counterThreads+=1
 
         #Discover if there is any run to be analysed
-        runsToAnalyze=airtables['RUNS'].search('Processing status','RAW2ROOT COMPLETED')
+        runsToAnalyze=runDB.airtables['RUNS'].search('Processing status','RAW2ROOT COMPLETED')
         for r in runsToAnalyze:
             if not r['id'] in analysisRuns:
                 if (r['fields']['Type']=='PED'):
