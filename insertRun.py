@@ -10,6 +10,8 @@ parser.add_argument('--id',dest='runid')
 parser.add_argument('--type',dest='runtype')
 parser.add_argument('--xtal',dest='xtal')
 parser.add_argument('--ov',dest='ov')
+parser.add_argument('--posx',dest='posX')
+parser.add_argument('--posy',dest='posY')
 parser.add_argument('--tag',dest='runtag')
 args = parser.parse_args()
 
@@ -17,7 +19,9 @@ runID=args.runid
 runType=args.runtype
 runXtal=args.xtal
 runTag=args.runtag
-runOV=args.ov
+runOV=float(args.ov)
+runPosX=float(args.posX)
+runPosY=float(args.posY)
 
 runTypeOK=False
 
@@ -34,11 +38,11 @@ if (len(records)>0):
     print('Error: RUN already inserted')
     exit(-1)
 
-if (runType=='SOURCE'):
+if (runType=='PHYS'):
     records = runDB.airtables['Crystals'].search('ID', runXtal)
     if (len(records)!=1):
         print('Error in querying associated crystal')
         exit(-1)
-    runDB.airtables['RUNS'].insert({'RunID': runID, 'Type':runType, 'Crystal':[records[0]['id']],'Processing status':'DAQ STARTED','TAG':runTag,'SetupID':1})
+    runDB.airtables['RUNS'].insert({'RunID': runID, 'Type':runType, 'Crystal':[records[0]['id']],'Processing status':'DAQ STARTED','TAG':runTag,'SetupID':2,'POSX':runPosX,'POSY':runPosY,'OV':runOV})
 else:
-    runDB.airtables['RUNS'].insert({'RunID': runID, 'Type':runType,'Processing status':'DAQ STARTED','TAG':runTag,'SetupID':1})
+    runDB.airtables['RUNS'].insert({'RunID': runID, 'Type':runType,'Processing status':'DAQ STARTED','TAG':runTag,'SetupID':2,'POSX':runPosX,'POSY':runPosY,'OV':runOV})
