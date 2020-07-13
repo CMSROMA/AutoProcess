@@ -67,12 +67,13 @@ class analysisThread (threading.Thread):
       runType='BAR' if 'BAR' in tags[2] else 'ARRAY'
       if (runType=='BAR'):
          partNumber=int(tags[2].replace('BAR',''))
+         command='cd %s; python %s --run %d --barCode %d -i %s -o %s/RESULTS > %s/RESULTS/%s_analysis.log 2>&1'%(processConfig.WORKDIR,processConfig.analysisCommand[runType],runNumber,partNumber,processConfig.OUTPUTDIR[runType],processConfig.OUTPUTDIR[runType],processConfig.OUTPUTDIR[runType],self.tag)
       elif (runType=='ARRAY'):
          partNumber=int(tags[2].replace('ARRAY',''))
+         command='cd %s; python %s --run %d --arrayCode %d -i %s -o %s/RESULTS > %s/RESULTS/%s_analysis.log 2>&1'%(processConfig.WORKDIR,processConfig.analysisCommand[runType],runNumber,partNumber,processConfig.OUTPUTDIR[runType],processConfig.OUTPUTDIR[runType],processConfig.OUTPUTDIR[runType],self.tag)
 
-      #Launch analysis
-      command='cd %s; python %s --run %d --barCode %d -i %s -o %s/RESULTS > %s/RESULTS/%s_analysis.log 2>&1'%(processConfig.WORKDIR,processConfig.analysisCommand[runType],runNumber,partNumber,processConfig.OUTPUTDIR[runType],processConfig.OUTPUTDIR[runType],processConfig.OUTPUTDIR[runType],self.tag)
       #      print(command)
+      #Launch analysis
       exitStatus=os.WEXITSTATUS(os.system(command))
       if (exitStatus==0):
           logging.info("Analysis completed for " + self.runid)
@@ -89,8 +90,56 @@ class analysisThread (threading.Thread):
 
       del analysisRuns[self.name]
 
+
+class summaryThread (threading.Thread):
+   def __init__(self, threadID, name, runid, runtype, tag, arrayRuns=None):
+      threading.Thread.__init__(self)
+      self.threadID = threadID
+      self.name= name
+      self.runid = runid
+      self.runtype = runtype.lower()
+      self.tag = tag
+      self.arrayRuns = arrayRuns
+   def run(self):
+      if (self.runtype=='ped'):
+          return
+      if (self.runtype=='phys' and len(self.arrayRuns)!=4):
+          return
+      logging.info("Started summary of " + self.runid)
+      fields = {'Processing status': 'SUMMARY STARTED'}
+      runDB.airtables['RUNS'].update(self.name, fields)
+      for r in self.arrayRuns.keys():
+         runDB.airtables['RUNS'].update(r, fields)         
+      tags=self.tag.split('_')
+      runNumber=int(tags[0].replace('Run',''))
+      runType='BAR' if 'BAR' in tags[2] else 'ARRAY'
+      if (runType=='BAR'):
+         return
+      elif (runType=='ARRAY'):
+         partNumber=int(tags[2].replace('ARRAY',''))
+         command='cd %s; python %s --firstRun %d --arrayCode %d -i %s -o %s/RESULTS > %s/RESULTS/%s_summary.log 2>&1'%(processConfig.WORKDIR,processConfig.summaryCommand[runType],runNumber,partNumber,processConfig.OUTPUTDIR[runType],processConfig.OUTPUTDIR[runType],processConfig.OUTPUTDIR[runType],self.tag)
+
+      #      print(command)
+      #Launch summary
+      exitStatus=os.WEXITSTATUS(os.system(command))
+      if (exitStatus==0):
+          logging.info("Summary completed for " + self.runid)
+          fields = {'Processing status': 'SUMMARY COMPLETED'}
+          runDB.airtables['RUNS'].update(self.name, fields)
+          for r in self.arrayRuns.keys():
+             runDB.airtables['RUNS'].update(r, fields)         
+      else:
+          logging.info("Analysis failed for " + self.runid)
+          fields = {'Processing status': 'FAILED'}
+          runDB.airtables['RUNS'].update(self.name, fields)
+          for r in arrayRuns.keys():
+             runDB.airtables['RUNS'].update(r, fields)
+
+      del summaryRuns[self.name]
+
 processingRuns={}
 analysisRuns={}
+summaryRuns={}
 counterThreads=1
 
 logging.info("Starting processing loop")
@@ -129,6 +178,41 @@ while True:
                      continue
                   analysisRuns[r['id']]=analysisThread(counterThreads,r['id'],r['fields']['RunID'],r['fields']['Type'],r['fields']['TAG'],pedRuns)
                   analysisRuns[r['id']].start()
+                  counterThreads+=1
+
+        runsToSummarize=runDB.airtables['RUNS'].search('Processing status','PROCESSING COMPLETED')
+        for r in runsToSummarize:
+            if not r['id'] in summaryRuns:
+               if (r['fields']['Type']=='PED'):
+                   continue
+               elif (r['fields']['Type']=='PHYS'):
+                  runNumber=int(r['fields']['RunID'].replace('Run',''))
+                  tags=r['fields']['TAG'].split('_')
+                  
+                  #identify first run of array
+                  if (not 'ARRAY' in tags[2]):
+                     continue
+                  if (not 'POS1' in tags[3]):
+                     continue
+                  logging.info(r['fields']['TAG'])
+                  #check subsequent PHYS runs for other positions
+                  runArrays=[ 'Run%s'%str(runNumber+i*3).zfill(6) for i in range(1,6) ]
+                  runsArray={}
+                  for i,p in enumerate(runArrays):
+                     for rv in runsToSummarize:
+                        if (rv['fields']['RunID']==p and rv['fields']['Type']=='PHYS'):
+                           if (rv['fields']['Crystal'] != r['fields']['Crystal']):
+                              continue
+                           logging.info(rv['fields']['TAG'])
+                           mytags=rv['fields']['TAG'].split('_')
+                           if(mytags[3] != 'POS%d'%(i+2)):
+                              continue
+                           runsArray[rv['id']]=p
+                           break
+                  if (len(runsArray)!=4):
+                     continue
+                  summaryRuns[r['id']]=summaryThread(counterThreads,r['id'],r['fields']['RunID'],r['fields']['Type'],r['fields']['TAG'],runsArray)
+                  summaryRuns[r['id']].start()
                   counterThreads+=1
 
     except KeyboardInterrupt:
