@@ -35,7 +35,7 @@ if not runTypeOK:
 
 records=runDB.airtables['RUNS'].search('RunID',runID)
 if (len(records)>0):
-    print('Error: RUN already inserted')
+    print('Error: RUN already inserted %s'%records)
     exit(-1)
 
 if (runType=='PHYS'):
