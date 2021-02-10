@@ -1,7 +1,7 @@
 import os
 from airtable import Airtable
 
-base_key = 'appEiaDqVEMNHoUHs'
+base_key = 'appi6WW159OZerPg2'
 tables = ['RUNS','Crystals']
 
 runStatuses = [
@@ -19,3 +19,4 @@ runTypes = ['PHYS','PED']
 airtables={}
 for t in tables:
     airtables[t] = Airtable(base_key, t, api_key=os.environ['AIRTABLE_KEY'])
+

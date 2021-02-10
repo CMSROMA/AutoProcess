@@ -43,6 +43,6 @@ if (runType=='PHYS'):
     if (len(records)!=1):
         print('Error in querying associated crystal')
         exit(-1)
-    runDB.airtables['RUNS'].insert({'RunID': runID, 'Type':runType, 'Crystal':[records[0]['id']],'Processing status':'DAQ STARTED','TAG':runTag,'SetupID':2,'POSX':runPosX,'POSY':runPosY,'OV':runOV})
+    runDB.airtables['RUNS'].insert({'RunID': runID, 'Type':runType, 'Crystal':[records[0]['id']],'Processing status':'DAQ STARTED','TAG':runTag,'SetupID':3,'POSX':runPosX,'POSY':runPosY,'OV':runOV})
 else:
-    runDB.airtables['RUNS'].insert({'RunID': runID, 'Type':runType,'Processing status':'DAQ STARTED','TAG':runTag,'SetupID':2,'POSX':runPosX,'POSY':runPosY,'OV':runOV})
+    runDB.airtables['RUNS'].insert({'RunID': runID, 'Type':runType,'Processing status':'DAQ STARTED','TAG':runTag,'SetupID':3,'POSX':runPosX,'POSY':runPosY,'OV':runOV})
