@@ -1,8 +1,8 @@
-WORKDIR='/home/cmsdaq/Workspace/TOFPET/Timing-TOFPET/'
+WORKDIR='/home/cmsdaq/Workspace/TOFPET/Timing-TOFPET2/'
 
 OUTPUTDIR={
    'BAR':'/media/cmsdaq/ext/data/LYSOBARS',
-   'ARRAY':'/media/cmsdaq/ext/data/LYSOARRAYS'
+   'ARRAY':'/data/cmsdaq/LYSOMULTIARRAYNEWLAB4ARRAYS/'
 }
 
 WEBDIR={
@@ -14,7 +14,7 @@ processCommand='process_runs.py'
 
 analysisCommand={
    'BAR':'analysis/analyze_run_bar.py',
-   'ARRAY':'analysis/analyze_run_array.py',
+   'ARRAY':'analysis/analyze_run_array_with_barRef.py',
 }
 
 summaryCommand={
