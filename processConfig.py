@@ -1,3 +1,10 @@
+import socket
+
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("8.8.8.8", 80))
+ip=s.getsockname()[0]
+print("IP Address:", ip)
+
 WORKDIR='/home/cmsdaq/Workspace/TOFPET/Timing-TOFPET2/'
 
 OUTPUTDIR={
@@ -6,8 +13,8 @@ OUTPUTDIR={
 }
 
 WEBDIR={
-   'BAR':'http://localhost/BARS/index.php?match=',
-   'ARRAY':'http://localhost/ARRAYS/index.php?match='
+   'BAR':'http://%s/BARS/index.php?match='%ip,
+   'ARRAY':'http://%s/ARRAYS/index.php?match='%ip
 }
 
 processCommand='process_runs.py'

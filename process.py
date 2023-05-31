@@ -155,7 +155,7 @@ while True:
         runsToProcess=runDB.airtables['RUNS'].search('Processing status','DAQ COMPLETED')
         for r in runsToProcess:
             if not r['id'] in processingRuns:
-                #print(r)
+                print(r)
                 processingRuns[r['id']]=processThread(counterThreads,r['id'],r['fields']['RunID'],r['fields']['Type'],r['fields']['TAG'])
                 processingRuns[r['id']].start()
                 counterThreads+=1

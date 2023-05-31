@@ -2,10 +2,15 @@ import os
 from airtable import Airtable
 
 #base_key = 'appi6WW159OZerPg2'
+
 #from 21/06/2021
-base_key = 'appqU3LwkozsBCCJW'
+#base_key = 'appqU3LwkozsBCCJW'
+
 #from 25/01/2022
-base_key = 'appTtgSyFU1PmkFEU'
+#base_key = 'appTtgSyFU1PmkFEU'
+
+#from 26/01/2023
+base_key = 'appOZkUHzUPtgd0PR'
 
 tables = ['RUNS','Crystals']
 
